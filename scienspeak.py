@@ -29,14 +29,16 @@ class Scienspeak(object):
 
     def __init__(self, args):
         """ Constructor """
+        pass
+
+    def run(self, name):
         # convert 'ae' digraph to an 'e' otherwise the syllabliser will get confused.
         # in latin it is a single vowel.
-        words = args.words[0].replace('ae', 'e')
-
+        words = name.replace('ae', 'e')
         self.words = [ word.strip().lower() for word in words.split(' ') ]
 
-    def run(self):
         syl = sylli.SylModule()
+        result = ''
         for word in self.words:
             # split into individual syllables
             syllables = syl.syllabify(word).split('.')
@@ -68,8 +70,9 @@ class Scienspeak(object):
                     else:
                         final.append(cur)
 
-            sys.stdout.write('.'.join(final) + ' ')
+            result += '.'.join(final) + ' '
 
+        return result
 
 #-----------------------------------------------------------------------------
 # Main
@@ -78,9 +81,39 @@ class Scienspeak(object):
 def main():
     """ Main script entry point """
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('words', nargs='+')
+    parser.add_argument('--file', '-f', dest='file_input', action='store_true',
+                        help='Read input from file with one entry per line')
+    parser.add_argument('positional_args', nargs='+')
     args = parser.parse_args()
-    Scienspeak(args).run()
+    temp_names = []
+    if args.file_input:
+        with open(args.positional_args[0]) as ifile:
+            temp_names = ifile.readlines()
+    else:
+        temp_names.append(args.positional_args[0])
+
+    # strip whitespace and find longest string for pretty output
+    max_len = -1
+    input_names = []
+    for name in temp_names:
+        name = name.strip()
+        if len(name) > max_len:
+            max_len = len(name)
+        input_names.append(name)
+
+    output_names = []
+    max_out_len = -1
+    for name in input_names:
+        res = Scienspeak(args).run(name)
+        if len(res) > max_out_len:
+            max_out_len = len(res)
+        output_names.append(res)
+
+    full_width = max_out_len + max_len + 7
+    for iname, oname in zip(input_names, output_names):
+        print('-' * full_width)
+        print(str.format('| {0: <{width}} | {1: <{width2}} |', iname, oname, width=max_len, width2=max_out_len))
+    print('-' * full_width)
 
 if __name__ == "__main__":
     main()
